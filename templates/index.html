@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if page == 'students' %}Students{% elif page == 'attendance' %}Take attendance{% elif page == 'report' %}Reports{% else %}Dashboard{% endif %} · Attendance Manager</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="topbar"><a class="brand" href="{{ url_for('index') }}">Attendance Manager</a>
+    <nav><a href="{{ url_for('index') }}">Home</a><a href="{{ url_for('students') }}">Students</a><a href="{{ url_for('attendance') }}">Take attendance</a><a href="{{ url_for('report') }}">Reports</a></nav>
+  </header>
+  <main class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}<div class="messages">{% for category, message in messages %}<div class="message {{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}{% endwith %}
+
+    {% if page == 'dashboard' %}
+      <section class="hero"><div><p class="eyebrow">DASHBOARD</p><h1>Good day!</h1><p>Overview for {{ today }}.</p></div><a class="button" href="{{ url_for('attendance') }}">Take attendance</a></section>
+      <div class="stat"><span>Total students</span><strong>{{ student_count }}</strong></div>
+      <section class="panel"><h2>Today's attendance</h2>{% if rows %}<div class="table-wrap"><table><thead><tr><th>Student</th><th>Roll number</th><th>Class</th><th>Status</th></tr></thead><tbody>{% for row in rows %}<tr><td>{{ row.name }}</td><td>{{ row.roll_number }}</td><td>{{ row.class_name or '—' }}</td><td>{% if row.status %}<span class="badge">{{ row.status }}</span>{% else %}<span class="muted">Not marked</span>{% endif %}</td></tr>{% endfor %}</tbody></table></div>{% else %}<p class="empty">No students yet. <a href="{{ url_for('students') }}">Add your first student</a>.</p>{% endif %}</section>
+
+    {% elif page == 'students' %}
+      <p class="eyebrow">ROSTER</p><h1>Students</h1><section class="panel"><h2>Add a student</h2><form method="post" class="form-grid"><label>Full name<input name="name" required maxlength="100"></label><label>Roll number<input name="roll_number" required maxlength="40"></label><label>Class / group<input name="class_name" maxlength="60"></label><button class="button" type="submit">Add student</button></form></section>
+      <section class="panel"><h2>Student list <span class="count">{{ students|length }}</span></h2>{% if students %}<div class="table-wrap"><table><thead><tr><th>Name</th><th>Roll number</th><th>Class</th><th></th></tr></thead><tbody>{% for student in students %}<tr><td>{{ student.name }}</td><td>{{ student.roll_number }}</td><td>{{ student.class_name or '—' }}</td><td><form method="post" action="{{ url_for('delete_student', student_id=student.id) }}" onsubmit="return confirm('Delete this student and their attendance records?')"><button class="link danger" type="submit">Delete</button></form></td></tr>{% endfor %}</tbody></table></div>{% else %}<p class="empty">Your roster is empty.</p>{% endif %}</section>
+
+    {% elif page == 'attendance' %}
+      <p class="eyebrow">DAILY RECORD</p><h1>Take attendance</h1><form method="get" class="date-picker"><label>Attendance date<input type="date" name="attendance_date" value="{{ selected_date }}" required></label><button class="button secondary" type="submit">Load date</button></form>
+      <form method="post" class="panel"><input type="hidden" name="attendance_date" value="{{ selected_date }}">{% if students %}<div class="table-wrap"><table><thead><tr><th>Student</th><th>Roll number</th><th>Status</th></tr></thead><tbody>{% for student in students %}<tr><td>{{ student.name }}{% if student.class_name %}<small>{{ student.class_name }}</small>{% endif %}</td><td>{{ student.roll_number }}</td><td><select name="status_{{ student.id }}"><option {% if student.status == 'Present' %}selected{% endif %}>Present</option><option {% if student.status == 'Absent' %}selected{% endif %}>Absent</option><option {% if student.status == 'Late' %}selected{% endif %}>Late</option></select></td></tr>{% endfor %}</tbody></table></div><button class="button save" type="submit">Save attendance</button>{% else %}<p class="empty">Add students to your roster before taking attendance.</p><a class="button" href="{{ url_for('students') }}">Go to students</a>{% endif %}</form>
+
+    {% elif page == 'report' %}
+      <p class="eyebrow">SUMMARY</p><h1>Attendance report</h1><form method="get" class="date-picker"><label>From<input type="date" name="start" value="{{ start }}" required></label><label>To<input type="date" name="end" value="{{ end }}" required></label><button class="button" type="submit">Update report</button></form>
+      <section class="panel"><div class="table-wrap"><table><thead><tr><th>Student</th><th>Roll number</th><th>Present</th><th>Absent</th><th>Late</th><th>Marked</th></tr></thead><tbody>{% for student in students %}<tr><td>{{ student.name }}</td><td>{{ student.roll_number }}</td><td>{{ student.present or 0 }}</td><td>{{ student.absent or 0 }}</td><td>{{ student.late or 0 }}</td><td>{{ student.marked or 0 }}</td></tr>{% else %}<tr><td colspan="6" class="empty">No students found.</td></tr>{% endfor %}</tbody></table></div></section>
+    {% endif %}
+  </main>
+  <footer>Attendance Manager · Python + SQLite</footer>
+</body>
+</html>
